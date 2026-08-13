@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16)
+project(phonecam)
+set(OpenCV_DIR "/usr/lib/x86_64-linux-gnu/cmake/opencv4")
+find_package(OpenCV REQUIRED)
+add_executable(phonecam main.cpp)
+target_link_libraries(phonecam PRIVATE ${OpenCV_LIBS})
