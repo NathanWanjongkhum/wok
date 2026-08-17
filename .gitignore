@@ -1,2 +1,4 @@
 .env
 /build
+log.csv
+.cache/
