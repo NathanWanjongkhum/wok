@@ -1,29 +1,63 @@
-#include <opencv2/opencv.hpp>
-#include <cstdlib>
-#include <iostream>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <X11/Xlib.h>
 
-int main()
+bool quited = false;
+
+void on_delete(Display *display, Window window)
 {
-    const char *url = std::getenv("PHONE_CAM_URL");
-    if (!url)
+    XDestroyWindow(display, window);
+    quited = true;
+}
+
+extern int main(int argc, char *argv[])
+{
+    Display *display = XOpenDisplay(NULL);
+    if (NULL == display)
     {
-        std::cerr << "Set PHONE_CAM_URL\n";
-        return 1;
+        fprintf(stderr, "Failed to initialize display");
+        return EXIT_FAILURE;
     }
 
-    cv::VideoCapture cap(url);
-    if (!cap.isOpened())
+    Window root = DefaultRootWindow(display);
+    if (None == root)
     {
-        std::cerr << "Failed to open stream\n";
-        return 1;
+        fprintf(stderr, "No root window found");
+        XCloseDisplay(display);
+        return EXIT_FAILURE;
     }
 
-    cv::Mat frame;
-    while (cap.read(frame) && !frame.empty())
+    Window window = XCreateSimpleWindow(display, root, 0, 0, 800, 600, 0, 0, 0xffffffff);
+    if (None == window)
     {
-        cv::imshow("Phone Camera", frame);
-        if (cv::waitKey(1) == 27)
+        fprintf(stderr, "Failed to create window");
+        XCloseDisplay(display);
+        return EXIT_FAILURE;
+    }
+
+    XMapWindow(display, window);
+
+    Atom wm_delete_window = XInternAtom(display, "WM_DELETE_WINDOW", False);
+    XSetWMProtocols(display, window, &wm_delete_window, 1);
+
+    XEvent event;
+    while (!quited)
+    {
+        XNextEvent(display, &event);
+
+        switch (event.type)
+        {
+        case ClientMessage:
+            if (event.xclient.data.l[0] == wm_delete_window)
+            {
+                on_delete(event.xclient.display, event.xclient.window);
+            }
             break;
+        }
     }
+
+    XCloseDisplay(display);
+
     return 0;
 }
